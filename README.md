@@ -39,8 +39,8 @@ Copy any line into the text box, set the language to **Telugu**, and click **Gen
 | # | Telugu input | Meaning | What to expect |
 |---|---|---|---|
 | 1 | నాకు మూడు రోజులుగా జ్వరం మరియు తీవ్రమైన తలనొప్పి ఉంది. ఛాతీలో కొద్దిగా నొప్పి కూడా ఉంది. | Fever and severe headache for 3 days, slight chest pain | Duration 3 days, Severe, red flag: chest pain |
-| 2 | రెండు రోజులుగా కడుపు నొప్పి మరియు వాంతులు అవుతున్నాయి. కొద్దిగా జ్వరం కూడా ఉంది. | Stomach pain and vomiting for 2 days, mild fever | Duration 2 days, no red flags |
-| 3 | నాకు వారం రోజులుగా దగ్గు మరియు గొంతు నొప్పి ఉంది. రాత్రి సమయంలో దగ్గు ఎక్కువగా ఉంటుంది. | Cough and sore throat for a week, cough worse at night | Duration 1 week, "worse at night" in other details |
+| 2 | రెండు రోజులుగా కడుపు నొప్పి మరియు వాంతులు అవుతున్నాయి. కొద్దిగా జ్వరం కూడా ఉంది. | Stomach pain and vomiting for 2 days, mild fever | Duration 2 days, no red flags, severity "Not stated" |
+| 3 | నాకు వారం రోజులుగా దగ్గు మరియు గొంతు నొప్పి ఉంది. రాత్రి సమయంలో దగ్గు ఎక్కువగా ఉంటుంది. | Cough and sore throat for a week, cough worse at night | Duration 1 week, no red flags |
 | 4 | నాకు ఊపిరి తీసుకోవడంలో ఇబ్బంది ఉంది మరియు ఛాతీలో తీవ్రమైన నొప్పి ఉంది. | Trouble breathing and severe chest pain | Red flags: breathing difficulty, chest pain (emergency test) |
 | 5 | నా మోకాళ్ల నొప్పి నెల రోజులుగా ఉంది. మెట్లు ఎక్కేటప్పుడు నొప్పి ఎక్కువవుతుంది. నాకు పెన్సిలిన్ అలర్జీ ఉంది. | Knee pain for a month, worse on stairs, penicillin allergy | Duration 1 month, allergy in other details |
 
