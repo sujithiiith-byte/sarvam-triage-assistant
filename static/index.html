@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triage Assistant</title>
+<style>
+  :root { --bg:#f6f8fb; --card:#fff; --ink:#14202e; --mut:#5d6b7b; --acc:#0b6bcb; --red:#c62828; --line:#dde3ea; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f1720; --card:#17212c; --ink:#e8eef5; --mut:#93a1b1; --acc:#4da3ff; --red:#ff6b6b; --line:#2a3745; } }
+  * { box-sizing:border-box } body { margin:0; font:16px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--ink) }
+  main { max-width:760px; margin:0 auto; padding:20px 16px 60px }
+  h1 { font-size:1.5rem; margin:0 0 4px } .sub { color:var(--mut); margin:0 0 16px }
+  .warn { background:color-mix(in srgb,var(--red) 12%,transparent); border:1px solid var(--red); border-radius:10px; padding:10px 14px; font-size:.9rem; margin-bottom:16px }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px }
+  button { font:inherit; border:0; border-radius:10px; padding:12px 20px; background:var(--acc); color:#fff; cursor:pointer }
+  button.rec { background:var(--red) } button.sec { background:transparent; color:var(--acc); border:1px solid var(--acc) }
+  button:disabled { opacity:.5; cursor:default }
+  textarea { width:100%; min-height:90px; font:inherit; padding:10px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--ink) }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center }
+  h2 { font-size:1rem; margin:0 0 8px; color:var(--mut); text-transform:uppercase; letter-spacing:.04em }
+  .k { font-weight:600 } ul { margin:4px 0 12px; padding-left:20px }
+  .sev { display:inline-block; padding:2px 10px; border-radius:99px; font-weight:600; border:1px solid var(--line) }
+  .Severe { color:var(--red); border-color:var(--red) } .Moderate { color:#e08a00; border-color:#e08a00 } .Mild { color:#2e7d32; border-color:#2e7d32 }
+  .flag { color:var(--red); font-weight:600 } #status { color:var(--mut); min-height:1.5em }
+  [hidden] { display:none !important }
+</style>
+</head>
+<body>
+<main>
+  <h1>Triage Assistant</h1>
+  <p class="sub">Speak, upload audio, or type your symptoms in your own language. The doctor receives an English summary.</p>
+  <div class="warn"><b>Not a diagnosis.</b> This tool only records what you say. In an emergency (chest pain, trouble breathing, severe bleeding) call your local emergency number immediately.</div>
+
+  <div class="card">
+    <div class="row">
+      <button id="rec">🎙 Start speaking</button>
+      <span id="status"></span>
+    </div>
+    <p class="sub" style="margin:10px 0 0">Up to 30 seconds. Telugu, Hindi, Tamil, Kannada, Malayalam, Bengali, Marathi, Gujarati, Punjabi, Odia, English.</p>
+  </div>
+
+  <div class="card" id="tcard">
+    <h2>Type symptoms or edit what we heard</h2>
+    <textarea id="transcript" placeholder="Type symptoms in any language, e.g. నాకు రెండు రోజులుగా జ్వరం ఉంది"></textarea>
+    <div class="row" style="margin-top:10px">
+      <select id="lang">
+        <option value="">Language: auto</option>
+        <option value="te-IN">Telugu</option><option value="hi-IN">Hindi</option>
+        <option value="ta-IN">Tamil</option><option value="kn-IN">Kannada</option>
+        <option value="ml-IN">Malayalam</option><option value="bn-IN">Bengali</option>
+        <option value="mr-IN">Marathi</option><option value="gu-IN">Gujarati</option>
+        <option value="pa-IN">Punjabi</option><option value="od-IN">Odia</option>
+        <option value="en-IN">English</option>
+      </select>
+      <button id="gen">Generate doctor's note</button>
+      <label class="sec" style="cursor:pointer;border:1px solid var(--acc);color:var(--acc);border-radius:10px;padding:11px 16px">
+        Upload audio<input type="file" id="file" accept="audio/*" hidden></label>
+    </div>
+  </div>
+
+  <div class="card" id="rcard" hidden>
+    <h2>Doctor's note (English)</h2>
+    <div id="report"></div>
+    <div class="row" style="margin-top:8px">
+      <button class="sec" id="copy">Copy note</button>
+      <button class="sec" id="play">🔊 Read back to patient</button>
+    </div>
+    <p id="native" class="sub"></p>
+    <audio id="audio" hidden></audio>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let rec, chunks = [], lang = null, data = null, noteText = "";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const status = t => $("status").textContent = t;
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail } catch {} throw new Error(m); }
+  return r.json();
+}
+
+async function transcribe(blob, name) {
+  status("Transcribing…");
+  try {
+    const fd = new FormData();
+    fd.append("audio", blob, name);
+    const j = await api("/api/transcribe", { method: "POST", body: fd });
+    $("transcript").value = j.transcript;
+    if (j.language_code) $("lang").value = j.language_code;
+    status(j.language_code ? "Detected: " + j.language_code : "");
+  } catch (e) { status("Error: " + e.message); }
+}
+
+$("file").onchange = e => { const f = e.target.files[0]; if (f) transcribe(f, f.name); };
+
+$("rec").onclick = async () => {
+  if (rec && rec.state === "recording") { rec.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    chunks = []; rec = new MediaRecorder(stream);
+    rec.ondataavailable = e => chunks.push(e.data);
+    rec.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      clearTimeout(timer);
+      $("rec").classList.remove("rec"); $("rec").textContent = "🎙 Start speaking";
+      await transcribe(new Blob(chunks, { type: rec.mimeType }), "speech.webm");
+    };
+    rec.start();
+    const timer = setTimeout(() => rec.state === "recording" && rec.stop(), 29000);
+    $("rec").classList.add("rec"); $("rec").textContent = "■ Stop"; status("Recording…");
+  } catch (e) { status("Microphone unavailable: " + e.message); }
+};
+
+$("gen").onclick = async () => {
+  lang = $("lang").value || null;
+  if (!$("transcript").value.trim()) { status("Type or record symptoms first."); return; }
+  $("gen").disabled = true; status("Writing note…");
+  try {
+    data = await api("/api/report", { method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ transcript: $("transcript").value, language_code: lang }) });
+    const li = a => a?.length ? "<ul>" + a.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>" : "<div>None</div>";
+    $("report").innerHTML =
+      `<div class="k">Symptoms</div>${li(data.symptoms)}
+       <div class="k">Duration</div><div>${esc(data.duration)}</div><br>
+       <div class="k">Severity</div><span class="sev ${esc(data.severity)}">${esc(data.severity)}</span><br><br>
+       <div class="k">Other details</div><div>${esc(data.other_details)}</div><br>
+       ${data.red_flags?.length ? `<div class="flag">⚠ Red flags</div>${li(data.red_flags)}` : ""}
+       <div class="k">Summary</div><div>${esc(data.summary_en)}</div>`;
+    $("native").textContent = data.confirmation_native || "";
+    noteText = `SYMPTOMS: ${(data.symptoms||[]).join("; ")}\nDURATION: ${data.duration}\nSEVERITY: ${data.severity}\n` +
+      `OTHER: ${data.other_details}\nRED FLAGS: ${(data.red_flags||[]).join("; ") || "None"}\nSUMMARY: ${data.summary_en}`;
+    $("rcard").hidden = false; status("");
+  } catch (e) { status("Error: " + e.message); }
+  $("gen").disabled = false;
+};
+
+$("copy").onclick = () => navigator.clipboard.writeText(noteText).then(() => status("Copied."));
+
+$("play").onclick = async () => {
+  if (!data?.confirmation_native) return;
+  status("Generating audio…");
+  try {
+    const j = await api("/api/speak", { method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ text: data.confirmation_native, language_code: lang || "hi-IN" }) });
+    $("audio").src = "data:audio/wav;base64," + j.audio_b64; $("audio").play(); status("");
+  } catch (e) { status("Error: " + e.message); }
+};
+</script>
+</body>
+</html>
