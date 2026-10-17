@@ -4,6 +4,8 @@
 
 Built with [Sarvam AI](https://docs.sarvam.ai) for a hackathon.
 
+**🔗 Live demo: https://sarvam-triage-assistant.onrender.com/** (free tier: the first load may take ~30 seconds to wake up)
+
 > ⚠️ **Not a medical device and not a diagnostic tool.** It only records and translates what the patient says. It never diagnoses or recommends treatment. In an emergency, call your local emergency number.
 
 ## How it works
@@ -99,3 +101,7 @@ requirements.txt    Python dependencies
 - Show the follow-up questions the model already generates
 - Longer audio via Sarvam's batch speech API
 - Streaming, real-time transcription
+
+## License
+
+[MIT](LICENSE)
